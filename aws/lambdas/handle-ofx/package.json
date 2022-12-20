@@ -1,0 +1,14 @@
+{
+  "name": "handle-ofx",
+  "version": "1.0.0",
+  "description": "Handle OFX files on S3 and load to DB",
+  "main": "index.js",
+  "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",
+  "license": "MIT",
+  "scripts": {
+    "zip": "zip -r handle-ofx.zip ."
+  },
+  "dependencies": {
+    "ofx": "^0.5.0"
+  }
+}
