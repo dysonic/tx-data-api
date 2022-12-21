@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A sample SAM template for deploying Lambda functions.
+
+Resources:
+# Details about the handleOFX Lambda function
+  myDateTimeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handleOFX.handler
+      Runtime: nodejs16.x

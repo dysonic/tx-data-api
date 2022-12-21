@@ -26,7 +26,7 @@ export const handler = async (event, context) => {
     let data = await client.send(command)
     data = await data.Body.transformToString()
     data = ofx.parse(data)
-    console.log('data:', data)
+    console.log('data.OFX.BANKMSGSRSV:', data.OFX.BANKMSGSRSV1)
     response = {
       statusCode: 200,
       body: data,

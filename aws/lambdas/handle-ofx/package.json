@@ -6,9 +6,11 @@
   "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",
   "license": "MIT",
   "scripts": {
-    "zip": "zip -r handle-ofx.zip ."
+    "zip": "rm -f ../handle-ofx.zip && zip -r ../handle-ofx.zip .",
+    "zip:info": "zipinfo ../handle-ofx.zip"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.235.0",
     "ofx": "^0.5.0"
   }
 }
