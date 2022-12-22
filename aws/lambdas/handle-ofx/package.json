@@ -6,10 +6,12 @@
   "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",
   "license": "MIT",
   "scripts": {
-    "zip": "rm -f ../handle-ofx.zip && zip -r ../handle-ofx.zip .",
+    "s3": "aws s3 cp ../handle-ofx.zip s3://dysonic-dev-misc/handle-ofx.zip",
+    "zip": "rm -f ../handle-ofx.zip && zip -r ../handle-ofx.zip -q .",
     "zip:info": "zipinfo ../handle-ofx.zip"
   },
   "dependencies": {
+    "@aws-sdk/client-rds-data": "^3.236.0",
     "@aws-sdk/client-s3": "^3.235.0",
     "ofx": "^0.5.0"
   }
