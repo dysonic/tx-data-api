@@ -1,5 +1,5 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
-import { RDSDataClient, BatchExecuteStatementCommand SqlParameter } from "@aws-sdk/client-rds-data";
+import { RDSDataClient, BatchExecuteStatementCommand } from '@aws-sdk/client-rds-data'
 import ofx from 'ofx'
 
 console.log('Loading function')
@@ -25,7 +25,7 @@ export const handler = async (event, context) => {
   
   // Get data from OFX file
   try {
-    data = getDataFromS3(event, s3Region);
+    data = await getDataFromS3(event, s3Region);
   } catch (err) {
     console.log(err)
     error = new Error(`Error getting object ${key} from bucket ${bucket} in ${s3Region}.`)
@@ -46,7 +46,7 @@ export const handler = async (event, context) => {
   // Load to DB
   if (!error) {
     try {
-      const result = loadTransactionsToDB(data, rdsRegion)
+      const result = await loadTransactionsToDB(data, rdsRegion)
     } catch (err) {
       console.log(err)
       error = new Error(`Error loading TX data.`)      
@@ -72,6 +72,7 @@ export const handler = async (event, context) => {
 }
 
 export const getDataFromS3 = async (event, region) => {
+  console.log('> getDataFromS3')
   const s3Client = new S3Client({ region })
   const bucket = event.Records[0].s3.bucket.name
   const key = decodeURIComponent(
@@ -90,6 +91,7 @@ export const getDataFromS3 = async (event, region) => {
 }
 
 export const extractData = OFX => {
+  console.log('> extractData')
   const { STMTRS } = OFX.BANKMSGSRSV1.STMTTRNRS
   const { BANKID: bank, BRANCHID: branch, ACCTID: account, ACCTTYPE: type } = STMTRS.BANKACCTFROM
   const bankAccount = {
@@ -126,13 +128,23 @@ export const extractData = OFX => {
 }
 
 export const loadTransactionsToDB = async ({ transactions }, region) => {
+  console.log('> loadTransactionsToDB')
   const rdsClient = new RDSDataClient({ region })
   const params = {
+    resourceArn: 'arn:aws:rds:us-west-1:561624862292:db:tx-data',
+    secretArn: 'arn:aws:secretsmanager:us-west-1:561624862292:secret:dev/txData/postgres-kUYPqt',
     database: 'tx-data',
-    sql: 'INSERT INTO transactions (id, datePosted, type, name, memo, amount) VALUES (?, ?, ? ,? ,? ,?)'
+    sql: 'insert into transactions values (:type, :datePosted, :amount, :id, :name, :memo)',
     parameterSets: transactions
       .map(({ type, datePosted, amount, id, name, memo }) => {
-        return [id, datePosted, type, name, memo, amount];
+        return [
+          { name: 'type', value: { stringValue: type } },
+          { name: 'datePosted', value: { stringValue: datePosted }, typeHint: 'DATE' }, 
+          { name: 'amount', value: { stringValue: amount } },
+          { name: 'id', value: { stringValue: id } }, 
+          { name: 'name', value: { stringValue: name } },
+          { name: 'memo', value: { stringValue: memo } }, 
+        ];
       })
   }
   const command = new BatchExecuteStatementCommand(params);
