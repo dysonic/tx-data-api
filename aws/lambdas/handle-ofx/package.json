@@ -6,13 +6,15 @@
   "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",
   "license": "MIT",
   "scripts": {
+    "dev": "npm run zip && npm run s3 && npm run deploy",
+    "deploy": "aws lambda update-function-code --function-name handleOFX --s3-bucket dysonic-dev-misc --s3-key handle-ofx.zip --no-cli-pager",
     "s3": "aws s3 cp ../handle-ofx.zip s3://dysonic-dev-misc/handle-ofx.zip",
     "zip": "rm -f ../handle-ofx.zip && zip -r ../handle-ofx.zip -q .",
-    "zip:info": "zipinfo ../handle-ofx.zip"
+    "zip:info": "zipinfo -h ../handle-ofx.zip"
   },
   "dependencies": {
-    "@aws-sdk/client-rds-data": "^3.236.0",
     "@aws-sdk/client-s3": "^3.235.0",
-    "ofx": "^0.5.0"
+    "ofx": "^0.5.0",
+    "pg": "^8.8.0"
   }
 }

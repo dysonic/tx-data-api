@@ -11,7 +11,7 @@ const {
   PGPORT: port, // The port number to connect to at the server host
 } = process.env
 
-let connectDb = async () => {
+const connectDb = async () => {
   try {
     const client = new Client({
       user,

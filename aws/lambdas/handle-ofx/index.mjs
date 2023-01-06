@@ -1,6 +1,28 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
-import { RDSDataClient, BatchExecuteStatementCommand } from '@aws-sdk/client-rds-data'
 import ofx from 'ofx'
+import pg from 'pg'
+const { Client } = pg
+
+// node-postgres uses the same environment variables as libpq and psql to connect to a PostgreSQL server.
+// @see https://node-postgres.com/features/connecting#environment-variables
+
+// PGUSER: PostgreSQL username to connect as
+// PGHOST: The name of the server host to connect to
+// PGPASSWORD: The password of the PostgreSQL server
+// PGDATABASE: The name of the database you are connecting to
+// PGPORT: The port number to connect to at the server host
+
+const connectDb = async () => {
+  try {
+    const client = new Client()
+    await client.connect()
+    return client
+  } catch (e) {
+    console.error('ERROR: Could not connect to PostgreSQL instance')
+    console.error(e)
+    throw e;
+  }
+}
 
 console.log('Loading function')
 
@@ -17,36 +39,47 @@ const isoDate = dateStr => {
 
 export const handler = async (event, context) => {
   const s3Region = 'ap-southeast-2'; // Sydney
-  const rdsRegion = 'us-west-1b'; // US West (N. California)
   
   let data
   let error
   let response
   
-  // Get data from OFX file
-  try {
-    data = await getDataFromS3(event, s3Region);
-  } catch (err) {
-    console.log(err)
-    error = new Error(`Error getting object ${key} from bucket ${bucket} in ${s3Region}.`)
-  }
+  // // Get data from OFX file
+  // try {
+  //   data = await getDataFromS3(event, s3Region);
+  // } catch (err) {
+  //   console.log(err)
+  //   error = new Error(`Error getting object ${key} from bucket ${bucket} in ${s3Region}.`)
+  // }
   
-  // Parse
-  if (!error) {
-    try {
-      data = ofx.parse(data)
-      data = extractData(data.OFX)    
-      console.log('parsed data:', data)
-    } catch (err) {
-      console.log(err)
-      error = new Error(`Error parsing OFX data.`)      
-    }
-  }
+  // // Parse
+  // if (!error) {
+  //   try {
+  //     data = ofx.parse(data)
+  //     data = extractData(data.OFX)    
+  //     console.log('parsed data:', data)
+  //   } catch (err) {
+  //     console.log(err)
+  //     error = new Error(`Error parsing OFX data.`)      
+  //   }
+  // }
 
   // Load to DB
+  data = {
+    transactions: [
+      {
+        type: 'DEBIT',
+        datePosted: '2022-11-29',
+        amount: '-13.99',
+        id: '202211290',
+        name: 'Cityfitness Group',
+        memo: 'Direct Debit  Cityfitnessg 1E1005I10061'
+      }
+    ]
+  };
   if (!error) {
     try {
-      const result = await loadTransactionsToDB(data, rdsRegion)
+      const result = await loadTransactionsToDB(data)
     } catch (err) {
       console.log(err)
       error = new Error(`Error loading TX data.`)      
@@ -127,26 +160,53 @@ export const extractData = OFX => {
   }
 }
 
-export const loadTransactionsToDB = async ({ transactions }, region) => {
+// export const loadTransactionsToDB = async ({ transactions }, region) => {
+//   console.log('> loadTransactionsToDB')
+
+//   const params = {
+//     resourceArn: 'arn:aws:rds:us-west-1:561624862292:db:tx-data',
+//     secretArn: 'arn:aws:secretsmanager:us-west-1:561624862292:secret:dev/txData/postgres-kUYPqt',
+//     database: 'tx-data',
+//     sql: 'insert into transactions values (:type, :datePosted, :amount, :id, :name, :memo)',
+//     parameterSets: transactions
+//       .map(({ type, datePosted, amount, id, name, memo }) => {
+//         return [
+//           { name: 'type', value: { stringValue: type } },
+//           { name: 'datePosted', value: { stringValue: datePosted }, typeHint: 'DATE' }, 
+//           { name: 'amount', value: { stringValue: amount } },
+//           { name: 'id', value: { stringValue: id } }, 
+//           { name: 'name', value: { stringValue: name } },
+//           { name: 'memo', value: { stringValue: memo } }, 
+//         ];
+//       })
+//   }
+//   const command = new BatchExecuteStatementCommand(params);
+//   const rdsResult = await rdsClient.send(command);
+// }
+
+export const loadTransactionsToDB = async ({ transactions }) => {
   console.log('> loadTransactionsToDB')
-  const rdsClient = new RDSDataClient({ region })
-  const params = {
-    resourceArn: 'arn:aws:rds:us-west-1:561624862292:db:tx-data',
-    secretArn: 'arn:aws:secretsmanager:us-west-1:561624862292:secret:dev/txData/postgres-kUYPqt',
-    database: 'tx-data',
-    sql: 'insert into transactions values (:type, :datePosted, :amount, :id, :name, :memo)',
-    parameterSets: transactions
-      .map(({ type, datePosted, amount, id, name, memo }) => {
-        return [
-          { name: 'type', value: { stringValue: type } },
-          { name: 'datePosted', value: { stringValue: datePosted }, typeHint: 'DATE' }, 
-          { name: 'amount', value: { stringValue: amount } },
-          { name: 'id', value: { stringValue: id } }, 
-          { name: 'name', value: { stringValue: name } },
-          { name: 'memo', value: { stringValue: memo } }, 
-        ];
-      })
+  const client = await connectDb()
+  
+  try {
+    await client.query('BEGIN')
+    // table order: type, datePosted, amount, id, name, memo
+    console.log('> insert txs')
+    const text = 'INSERT INTO transactions VALUES($1, $2, $3, $4, $5, $6)'
+    transactions.forEach(async ({ type, datePosted, amount, id, name, memo }) => {
+      const values = [type, datePosted, amount, id, name, memo];
+      const res = await client.query(text, values)
+      console.log(res)
+    })
+    await client.query('COMMIT')
+    // const res = await client.query('SELECT * FROM transactions')
+    // console.log(res)
+    // await client.end()
+  } catch (e) {
+    console.error(e)
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    client.end()
   }
-  const command = new BatchExecuteStatementCommand(params);
-  const rdsResult = await rdsClient.send(command);
 }
