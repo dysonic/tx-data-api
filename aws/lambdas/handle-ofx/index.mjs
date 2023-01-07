@@ -1,6 +1,8 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import ofx from 'ofx'
 import pg from 'pg'
+import { nanoid } from 'nanoid'
+
 const { Client } = pg
 
 // node-postgres uses the same environment variables as libpq and psql to connect to a PostgreSQL server.
@@ -24,6 +26,15 @@ const connectDb = async () => {
   }
 }
 
+const parseEvent = event => {
+  const bucket = event.Records[0].s3.bucket.name
+  const key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '))
+  return {
+    bucket,
+    key,
+  }
+}
+
 console.log('Loading function')
 
 const dateRegex = /^(\d{4})(\d{2})(\d{2})$/
@@ -38,45 +49,47 @@ const isoDate = dateStr => {
 }
 
 export const handler = async (event, context) => {
-  const s3Region = 'ap-southeast-2'; // Sydney
+  // const s3Region = 'ap-southeast-2'; // Sydney
+  const s3Region = 'us-west-1'; // US West (N. California)
   
   let data
   let error
   let response
   
-  // // Get data from OFX file
-  // try {
-  //   data = await getDataFromS3(event, s3Region);
-  // } catch (err) {
-  //   console.log(err)
-  //   error = new Error(`Error getting object ${key} from bucket ${bucket} in ${s3Region}.`)
-  // }
+  // Get raw data from OFX file
+  const { bucket, key } = parseEvent(event)
+  try {
+    data = await getDataFromS3(s3Region, bucket, key);
+  } catch (err) {
+    console.log(err)
+    error = new Error(`Error getting object ${key} from bucket ${bucket} in ${s3Region}.`)
+  }
   
-  // // Parse
-  // if (!error) {
-  //   try {
-  //     data = ofx.parse(data)
-  //     data = extractData(data.OFX)    
-  //     console.log('parsed data:', data)
-  //   } catch (err) {
-  //     console.log(err)
-  //     error = new Error(`Error parsing OFX data.`)      
-  //   }
-  // }
+  // Parse XML and convert to JSON
+  if (!error) {
+    try {
+      data = ofx.parse(data)
+      data = extractData(data.OFX)    
+      console.log('parsed data:', data)
+    } catch (err) {
+      console.log(err)
+      error = new Error(`Error parsing OFX data.`)      
+    }
+  }
 
   // Load to DB
-  data = {
-    transactions: [
-      {
-        type: 'DEBIT',
-        datePosted: '2022-11-29',
-        amount: '-13.99',
-        id: '202211290',
-        name: 'Cityfitness Group',
-        memo: 'Direct Debit  Cityfitnessg 1E1005I10061'
-      }
-    ]
-  };
+  // data = {
+  //   transactions: [
+  //     {
+  //       type: 'DEBIT',
+  //       datePosted: '2022-11-29',
+  //       amount: '-13.99',
+  //       thirdPartyTxIdgs: '202211290',
+  //       description: 'Cityfitness Group',
+  //       notes: 'Direct Debit  Cityfitnessg 1E1005I10061'
+  //     }
+  //   ]
+  // };
   if (!error) {
     try {
       const result = await loadTransactionsToDB(data)
@@ -104,13 +117,9 @@ export const handler = async (event, context) => {
   return response
 }
 
-export const getDataFromS3 = async (event, region) => {
+export const getDataFromS3 = async (region, bucket, key) => {
   console.log('> getDataFromS3')
   const s3Client = new S3Client({ region })
-  const bucket = event.Records[0].s3.bucket.name
-  const key = decodeURIComponent(
-    event.Records[0].s3.object.key.replace(/\+/g, ' ')
-  )
   const bucketParams = {
     Bucket: bucket,
     Key: key,
@@ -126,26 +135,35 @@ export const getDataFromS3 = async (event, region) => {
 export const extractData = OFX => {
   console.log('> extractData')
   const { STMTRS } = OFX.BANKMSGSRSV1.STMTTRNRS
-  const { BANKID: bank, BRANCHID: branch, ACCTID: account, ACCTTYPE: type } = STMTRS.BANKACCTFROM
+  const { BANKID: bank, BRANCHID: branch, ACCTID, ACCTTYPE: type } = STMTRS.BANKACCTFROM
+  let [account, suffix] = ACCTID.split('-')
+  
+  // Convert to three digit suffix 
+  if (suffix.length === 2) {
+    suffix = '0' +  suffix
+  }
+  
   const bankAccount = {
     bank,
     branch,
     account,
+    suffix,
     type,
   }
+  
   let { DTSTART: start, DTEND: end } = STMTRS.BANKTRANLIST
   start = isoDate(start)
   end = isoDate(end)
   const transactions = STMTRS.BANKTRANLIST.STMTTRN
-    .map(({ TRNTYPE: type, DTPOSTED: datePosted, TRNAMT: amount, FITID: id, NAME: name, MEMO: memo }) => {
+    .map(({ TRNTYPE: type, DTPOSTED: datePosted, TRNAMT: amount, FITID: thirdPartyTxId, NAME: description, MEMO: notes }) => {
       datePosted = isoDate(datePosted)
       return {
         type,
         datePosted,
         amount,
-        id,
-        name,
-        memo,
+        thirdPartyTxId,
+        description,
+        notes,
       }
     })
     .filter(({ type }) => type !== 'DEP');
@@ -160,43 +178,59 @@ export const extractData = OFX => {
   }
 }
 
-// export const loadTransactionsToDB = async ({ transactions }, region) => {
-//   console.log('> loadTransactionsToDB')
+export const getBankAccountId = async (client, { bank, branch, account, suffix }) => {
+  console.log('> getBankAccountId')
+  const text = 'SELECT id FROM bank_account WHERE bank = $1 AND branch = $2 AND account = $3 AND suffix = $4'
+  const values = [bank, branch, account, suffix];
+  const res = await client.query(text, values)
+  // console.log(res)
+  if (res.rowCount) {
+    return res.rows[0].id
+  }
+  return null
+}
 
-//   const params = {
-//     resourceArn: 'arn:aws:rds:us-west-1:561624862292:db:tx-data',
-//     secretArn: 'arn:aws:secretsmanager:us-west-1:561624862292:secret:dev/txData/postgres-kUYPqt',
-//     database: 'tx-data',
-//     sql: 'insert into transactions values (:type, :datePosted, :amount, :id, :name, :memo)',
-//     parameterSets: transactions
-//       .map(({ type, datePosted, amount, id, name, memo }) => {
-//         return [
-//           { name: 'type', value: { stringValue: type } },
-//           { name: 'datePosted', value: { stringValue: datePosted }, typeHint: 'DATE' }, 
-//           { name: 'amount', value: { stringValue: amount } },
-//           { name: 'id', value: { stringValue: id } }, 
-//           { name: 'name', value: { stringValue: name } },
-//           { name: 'memo', value: { stringValue: memo } }, 
-//         ];
-//       })
-//   }
-//   const command = new BatchExecuteStatementCommand(params);
-//   const rdsResult = await rdsClient.send(command);
-// }
+export const insertBankAccount = async (client, bankAccount) => {
+  const { id, bank, branch, account, suffix, type } = bankAccount
+  console.log('> insertBankAccount:', bankAccount)
+  // bank_account (6): id, bank, branch, account, suffix, type
+  const text = 'INSERT INTO bank_account (id, bank, branch, account, suffix, type) VALUES($1, $2, $3, $4, $5, $6)'
+  const values = [id, bank, branch, account, suffix, type];
+  const res = await client.query(text, values)
+  console.log(res)
+}
 
-export const loadTransactionsToDB = async ({ transactions }) => {
+export const insertTransaction = async (client, tx, bankAccountId) => {
+  const { id, thirdPartyTxId, datePosted, amount, description, notes, type } = tx
+  console.log('> insertTransaction:', tx)
+  // transaction (8): id, third_party_tx_id, date_posted, amount, description, notes, type, bank_account_id
+  const text = 'INSERT INTO transaction (id, third_party_tx_id, date_posted, amount, description, notes, type, bank_account_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8)'
+  const values = [id, thirdPartyTxId, datePosted, amount, description, notes, type, bankAccountId];
+  const res = await client.query(text, values)
+  console.log(res)
+}
+
+export const loadTransactionsToDB = async ({ bankAccount, transactions }) => {
   console.log('> loadTransactionsToDB')
   const client = await connectDb()
   
   try {
+    // See if we have an existing bank account
+    let bankAccountId = await getBankAccountId(client, bankAccount)
+    
     await client.query('BEGIN')
-    // table order: type, datePosted, amount, id, name, memo
+    if (!bankAccountId) {
+      
+      // If not then add the bank account
+      bankAccountId = nanoid(7)
+      bankAccount.id = bankAccountId
+      await insertBankAccount(client, bankAccount)
+    }
+    
     console.log('> insert txs')
-    const text = 'INSERT INTO transactions VALUES($1, $2, $3, $4, $5, $6)'
-    transactions.forEach(async ({ type, datePosted, amount, id, name, memo }) => {
-      const values = [type, datePosted, amount, id, name, memo];
-      const res = await client.query(text, values)
-      console.log(res)
+    transactions.forEach(async (tx) => {
+      tx.id = nanoid(7)
+      await insertTransaction(client, tx, bankAccountId)
     })
     await client.query('COMMIT')
     // const res = await client.query('SELECT * FROM transactions')
