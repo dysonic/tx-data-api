@@ -22,7 +22,7 @@ const connectDb = async () => {
   } catch (e) {
     console.error('ERROR: Could not connect to PostgreSQL instance')
     console.error(e)
-    throw e;
+    throw e
   }
 }
 
@@ -49,8 +49,8 @@ const isoDate = dateStr => {
 }
 
 export const handler = async (event, context) => {
-  // const s3Region = 'ap-southeast-2'; // Sydney
-  const s3Region = 'us-west-1'; // US West (N. California)
+  // const s3Region = 'ap-southeast-2' // Sydney
+  const s3Region = 'us-west-1' // US West (N. California)
   
   let data
   let error
@@ -59,10 +59,11 @@ export const handler = async (event, context) => {
   // Get raw data from OFX file
   const { bucket, key } = parseEvent(event)
   try {
-    data = await getDataFromS3(s3Region, bucket, key);
+    console.log(`Getting object '${key}' from S3 bucket '${bucket}' in '${s3Region}''.`)
+    data = await getDataFromS3Bucket(s3Region, bucket, key)
   } catch (err) {
     console.log(err)
-    error = new Error(`Error getting object ${key} from bucket ${bucket} in ${s3Region}.`)
+    error = new Error(`Error getting object '${key}' from S3 bucket '${bucket}' in '${s3Region}'.`)
   }
   
   // Parse XML and convert to JSON
@@ -77,19 +78,6 @@ export const handler = async (event, context) => {
     }
   }
 
-  // Load to DB
-  // data = {
-  //   transactions: [
-  //     {
-  //       type: 'DEBIT',
-  //       datePosted: '2022-11-29',
-  //       amount: '-13.99',
-  //       thirdPartyTxIdgs: '202211290',
-  //       description: 'Cityfitness Group',
-  //       notes: 'Direct Debit  Cityfitnessg 1E1005I10061'
-  //     }
-  //   ]
-  // };
   if (!error) {
     try {
       const result = await loadTransactionsToDB(data)
@@ -117,23 +105,18 @@ export const handler = async (event, context) => {
   return response
 }
 
-export const getDataFromS3 = async (region, bucket, key) => {
-  console.log('> getDataFromS3')
+export const getDataFromS3Bucket = async (region, bucket, key) => {
   const s3Client = new S3Client({ region })
-  const bucketParams = {
+  const command = new GetObjectCommand({
     Bucket: bucket,
-    Key: key,
-  }
-  console.log('bucketParams:', bucketParams)
-
-  const command = new GetObjectCommand(bucketParams)
+    Key: key,    
+  })
   let data = await s3Client.send(command)
   data = await data.Body.transformToString()
   return data
 }
 
 export const extractData = OFX => {
-  console.log('> extractData')
   const { STMTRS } = OFX.BANKMSGSRSV1.STMTTRNRS
   const { BANKID: bank, BRANCHID: branch, ACCTID, ACCTTYPE: type } = STMTRS.BANKACCTFROM
   let [account, suffix] = ACCTID.split('-')
@@ -157,6 +140,7 @@ export const extractData = OFX => {
   const transactions = STMTRS.BANKTRANLIST.STMTTRN
     .map(({ TRNTYPE: type, DTPOSTED: datePosted, TRNAMT: amount, FITID: thirdPartyTxId, NAME: description, MEMO: notes }) => {
       datePosted = isoDate(datePosted)
+      // console.log(type, amount, Number(amount))
       return {
         type,
         datePosted,
@@ -166,7 +150,8 @@ export const extractData = OFX => {
         notes,
       }
     })
-    .filter(({ type }) => type !== 'DEP');
+    // Negative is Cash out, Positive is Cash in
+    .filter(({ type, amount }) => !(type === 'DEP' || Number(amount) > 0))
     
   console.log("txs #", transactions.length)
   
@@ -178,10 +163,28 @@ export const extractData = OFX => {
   }
 }
 
+export const validateBankAccount = (bankAccount) => {
+  const { bank, branch, account, suffix, type } = bankAccount
+  if (!/^\d{2}$/.test(bank)) {
+    throw new Error('The bank account `bank` is invalid. It should be two digits, zero padded.')
+  }
+  if (!/^\d{4}$/.test(branch)) {
+    throw new Error('The bank account `branch` is invalid. It should be four digits, zero padded.')
+  }
+  if (!/^\d{7}$/.test(account)) {
+    throw new Error('The bank account `account` is invalid. It should be seven digits, zero padded.')
+  }
+  if (!/^\d{3}$/.test(suffix)) {
+    throw new Error('The bank account `suffix` is invalid. It should be three digits, zero padded.')
+  }
+  if (type && !/^[A-Z]+$/.test(type)) {
+    throw new Error('The bank account `type` is invalid. It should be one uppercase word.')
+  }
+}
+
 export const getBankAccountId = async (client, { bank, branch, account, suffix }) => {
-  console.log('> getBankAccountId')
   const text = 'SELECT id FROM bank_account WHERE bank = $1 AND branch = $2 AND account = $3 AND suffix = $4'
-  const values = [bank, branch, account, suffix];
+  const values = [bank, branch, account, suffix]
   const res = await client.query(text, values)
   // console.log(res)
   if (res.rowCount) {
@@ -192,26 +195,32 @@ export const getBankAccountId = async (client, { bank, branch, account, suffix }
 
 export const insertBankAccount = async (client, bankAccount) => {
   const { id, bank, branch, account, suffix, type } = bankAccount
-  console.log('> insertBankAccount:', bankAccount)
   // bank_account (6): id, bank, branch, account, suffix, type
   const text = 'INSERT INTO bank_account (id, bank, branch, account, suffix, type) VALUES($1, $2, $3, $4, $5, $6)'
-  const values = [id, bank, branch, account, suffix, type];
+  const values = [id, bank, branch, account, suffix, type]
+  await client.query(text, values)
+}
+
+export const getTransactionId = async (client, thirdPartyTxId, bankAccountId) => {
+  const text = 'SELECT id FROM transaction WHERE third_party_tx_id = $1 AND bank_account_id = $2'
+  const values = [thirdPartyTxId, bankAccountId]
   const res = await client.query(text, values)
-  console.log(res)
+  // console.log(res)
+  if (res.rowCount) {
+    return res.rows[0].id
+  }
+  return null
 }
 
 export const insertTransaction = async (client, tx, bankAccountId) => {
   const { id, thirdPartyTxId, datePosted, amount, description, notes, type } = tx
-  console.log('> insertTransaction:', tx)
   // transaction (8): id, third_party_tx_id, date_posted, amount, description, notes, type, bank_account_id
   const text = 'INSERT INTO transaction (id, third_party_tx_id, date_posted, amount, description, notes, type, bank_account_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8)'
-  const values = [id, thirdPartyTxId, datePosted, amount, description, notes, type, bankAccountId];
-  const res = await client.query(text, values)
-  console.log(res)
+  const values = [id, thirdPartyTxId, datePosted, amount, description, notes, type, bankAccountId]
+  await client.query(text, values)
 }
 
 export const loadTransactionsToDB = async ({ bankAccount, transactions }) => {
-  console.log('> loadTransactionsToDB')
   const client = await connectDb()
   
   try {
@@ -228,10 +237,20 @@ export const loadTransactionsToDB = async ({ bankAccount, transactions }) => {
     }
     
     console.log('> insert txs')
-    transactions.forEach(async (tx) => {
+    for (let i = 0; i < transactions.length; i++) {
+      
+      const tx = transactions[i]
+      
+      // Check if tx has already been added. If so, skip.
+      const txId = await getTransactionId(client, tx.thirdPartyTxId, bankAccountId)
+      if (txId) {
+        continue
+      }
+      
       tx.id = nanoid(7)
       await insertTransaction(client, tx, bankAccountId)
-    })
+    }
+
     await client.query('COMMIT')
     // const res = await client.query('SELECT * FROM transactions')
     // console.log(res)
