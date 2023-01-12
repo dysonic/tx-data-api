@@ -23,7 +23,7 @@ const connectDb = async () => {
     console.log('> connect')
     await client.connect()
     console.log('> query')
-    const res = await client.query('SELECT * FROM transactions')
+    const res = await client.query('SELECT * FROM transaction')
     console.log(res)
     await client.end()
   } catch (e) {

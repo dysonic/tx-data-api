@@ -6,7 +6,8 @@
   "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",
   "license": "MIT",
   "scripts": {
-    "deploy": "aws lambda update-function-code --function-name rdsTutorial --zip-file fileb://../rds-tutorial.zip",
+    "dev": "npm run zip && npm run s3 && npm run deploy",
+    "deploy": "aws lambda update-function-code --function-name rdsTutorial --zip-file fileb://../rds-tutorial.zip  --no-cli-pager",
     "s3": "aws s3 cp ../rds-tutorial.zip s3://dysonic-dev-misc/rds-tutorial.zip",
     "zip": "rm -f ../rds-tutorial.zip && zip -r ../rds-tutorial.zip -q .",
     "zip:info": "zipinfo ../rds-tutorial.zip"

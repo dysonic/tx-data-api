@@ -43,8 +43,8 @@ export const handler = async (event, context) => {
   }
 }
 
-const getUncategorizedTransactionCount = x;async (client) => {
-  const text = 'SELECT COUNT(*) FROM transactions'
+const getUncategorizedTransactionCount = async (client) => {
+  const text = 'SELECT COUNT(*) FROM transaction'
   const res = await client.query(text)
   if (res.rowCount) {
     return res.rows[0].id
@@ -72,7 +72,7 @@ export const getTransactionsAndMeta = async () => {
       meta: {
         isMore,
         numberOfUncategorizedTransactions,
-      }
+      },
       transactions,
     }
   } catch (e) {
