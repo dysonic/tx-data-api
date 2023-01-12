@@ -1,0 +1,19 @@
+{
+  "name": "get-uncategorized-transactions",
+  "version": "1.0.0",
+  "description": "Get uncategorized transactions from the DB",
+  "main": "index.js",
+  "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",
+  "license": "MIT",
+  "scripts": {
+    "create-service-role": "aws iam create-role help",
+    "dev": "npm run zip && npm run s3 && npm run deploy",
+    "deploy": "aws lambda update-function-code --function-name getUncategorizedTransactions --s3-bucket dysonic-dev-misc --s3-key get-uncategorized-transactions.zip --no-cli-pager",
+    "s3": "aws s3 cp ../get-uncategorized-transactions.zip s3://dysonic-dev-misc/get-uncategorized-transactions.zip",
+    "zip": "rm -f ../get-uncategorized-transactions.zip && zip -r ../get-uncategorized-transactions.zip -q .",
+    "zip:info": "zipinfo -h ../get-uncategorized-transactions.zip"
+  },
+  "dependencies": {
+    "pg": "^8.8.0"
+  }
+}
