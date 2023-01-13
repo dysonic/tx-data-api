@@ -30,15 +30,15 @@ export const handler = async (event, context) => {
     const data = await getTransactionsAndMeta()
     return {
       statusCode: 200,
-      body: data,
+      headers: {
+          "content-type" : "application/json; charset=utf-8",
+      },
+      body: JSON.stringify(data),
     } 
   } catch (error) {
-    console.log(error)
     return {
       statusCode: 500,
-      body: {
-        error,
-      },
+      body: JSON.stringify({ error }),
     }
   }
 }
@@ -61,9 +61,10 @@ export const getUncategorizedTransactions = async (client) => {
 }
 
 export const getTransactionsAndMeta = async () => {
-  const client = await connectDb()
-  
+  let client
   try {
+    client = await connectDb()
+    
     // See if we have an existing bank account
     const numberOfUncategorizedTransactions = await getUncategorizedTransactionCount(client)
     const transactions = await getUncategorizedTransactions(client)
@@ -77,9 +78,8 @@ export const getTransactionsAndMeta = async () => {
     }
   } catch (e) {
     console.error(e)
-    await client.query('ROLLBACK')
     throw e
   } finally {
-    client.end()
+    client && client.end()
   }
 }
