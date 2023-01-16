@@ -1,0 +1,19 @@
+{
+  "name": "upload-file",
+  "version": "1.0.0",
+  "description": "Upload OFX file to S3",
+  "main": "index.js",
+  "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "npm run zip && npm run s3 && npm run deploy",
+    "deploy": "aws lambda update-function-code --function-name uploadFile --s3-bucket dysonic-dev-misc --s3-key upload-file.zip --no-cli-pager",
+    "s3": "aws s3 cp ../upload-file.zip s3://dysonic-dev-misc/upload-file.zip",
+    "zip": "rm -f ../upload-file.zip && zip -r ../upload-file.zip -q .",
+    "zip:info": "zipinfo -h ../upload-file.zip"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.235.0",
+    "parse-multipart-data": "^1.5.0"
+  }
+}
