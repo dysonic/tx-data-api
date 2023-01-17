@@ -10,20 +10,12 @@ export const uploadFile = async (file, region, bucket) => {
     Key: key, // The name of the object. For example, 'sample_upload.txt'.
     Body: body, // The content of the object. For example, 'Hello world!".
   }
+  console.log(`Uploading ${key} to ${bucket} in ${region}`);
   const s3Client = new S3Client({
     region,
   })
 
-  const results = await s3Client.send(new PutObjectCommand(params))
-  console.log(
-    'Successfully created ' +
-      params.Key +
-      ' and uploaded it to ' +
-      params.Bucket +
-      '/' +
-      params.Key
-  )
-  return results // For unit tests.
+  return await s3Client.send(new PutObjectCommand(params))
 }
 
 console.log('Loading function')
@@ -41,21 +33,22 @@ export const handler = async (event, context) => {
     },
   }
   try {
-    const body = Buffer.from(event.body, 'base64').toString('ascii')
+    const { body, headers } = event
+    const buffer = Buffer.from(body, 'base64')
+    const boundary = multipart.getBoundary(headers['content-type']);
     
-    console.log('Content type:', event.headers['content-type'])
-    console.log('Decoded payload:', body)
-    
-    const matches = /boundary=(.+)$/.exec(event.headers['content-type'])
-    if (!matches) {
-      throw new Error('Missing `boundary` in content-type header.');
-    }
+    // console.log('boundary:', boundary)
+    // console.log('Content type:', headers['content-type'])
+    // console.log('Decoded payload:', body)
 
     const filesUploaded = []
-    const boundary = matches[1]
-    console.log('boundary:', boundary)
-    const parts = multipart.parse(body, boundary)
-    console.log('parts #', parts.length)
+
+    const parts = multipart.parse(buffer, boundary)
+    // console.log('parts #', parts.length)
+    if (parts.length === 0) {
+      throw new Error('Could not extract parts from form data.')
+    }
+    
     for (let i = 0; i < parts.length; i++) {
       const { filename, data: buffer } = parts[i]
       // will be: { filename: 'A.txt', type: 'text/plain', data: <Buffer 41 41 41 41 42 42 42 42> }
