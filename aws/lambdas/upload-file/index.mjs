@@ -1,7 +1,9 @@
 import multipart from 'parse-multipart-data'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
-export const uploadFile = async (file, region, bucket) => {
+const { S3_BUCKET: s3Bucket, S3_REGION: s3Region } = process.env
+
+export const uploadFile = async (region, bucket, file) => {
   const { buffer, filename: key } = file
   const body = buffer.toString()
 
@@ -21,11 +23,6 @@ export const uploadFile = async (file, region, bucket) => {
 console.log('Loading function')
 
 export const handler = async (event, context) => {
-  // const s3Region = 'ap-southeast-2' // Sydney
-  const s3Region = 'us-west-1' // US West (N. California)
-  
-  const { S3_BUCKET: s3Bucket } = process.env
-  
   const response = {
     statusCode: 200,
     headers: {
@@ -44,7 +41,7 @@ export const handler = async (event, context) => {
     const filesUploaded = []
 
     const parts = multipart.parse(buffer, boundary)
-    // console.log('parts #', parts.length)
+    // gconsole.log('parts #', parts.length)
     if (parts.length === 0) {
       throw new Error('Could not extract parts from form data.')
     }
@@ -56,7 +53,7 @@ export const handler = async (event, context) => {
         filename,
         buffer,
       }
-      await uploadFile(file, s3Region, s3Bucket)
+      await uploadFile(s3Region, s3Bucket, file)
       filesUploaded.push(filename)
     }
     response.body = JSON.stringify({ filesUploaded })
