@@ -23,6 +23,8 @@ export const uploadFile = async (region, bucket, file) => {
 console.log('Loading function')
 
 export const handler = async (event, context) => {
+  console.log('event', event);
+  
   const response = {
     statusCode: 200,
     headers: {

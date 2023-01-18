@@ -6,6 +6,7 @@
   "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",
   "license": "MIT",
   "scripts": {
+    "invoke:async": "aws lambda invoke --function-name uploadFile --invocation-type Event --payload file://event.json --cli-binary-format raw-in-base64-out response.json",
     "dev": "npm run zip && npm run s3 && npm run deploy",
     "deploy": "aws lambda update-function-code --function-name uploadFile --s3-bucket dysonic-dev-misc --s3-key upload-file.zip --no-cli-pager",
     "s3": "aws s3 cp ../upload-file.zip s3://dysonic-dev-misc/upload-file.zip",
