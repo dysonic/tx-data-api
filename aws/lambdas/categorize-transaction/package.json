@@ -1,0 +1,20 @@
+{
+  "name": "categorize-transaction",
+  "version": "1.0.0",
+  "description": "Categorized transaction and update DB",
+  "main": "index.js",
+  "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",
+  "license": "MIT",
+  "scripts": {
+    "create-service-role": "aws iam create-role help",
+    "dev": "npm run zip && npm run s3 && npm run deploy",
+    "deploy": "aws lambda update-function-code --function-name categorizeTransaction --s3-bucket dysonic-dev-misc --s3-key categorize-transaction.zip --no-cli-pager",
+    "s3": "aws s3 cp ../categorize-transaction.zip s3://dysonic-dev-misc/categorize-transaction.zip",
+    "zip": "rm -f ../categorize-transaction.zip && zip -r ../categorize-transaction.zip -q .",
+    "zip:info": "zipinfo -h ../categorize-transaction.zip"
+  },
+  "dependencies": {
+    "nanoid": "^4.0.0",
+    "pg": "^8.8.0"
+  }
+}
