@@ -6,7 +6,7 @@ It utilises [AWS Parameters and Secrets Lambda Extension](https://docs.aws.amazo
 
 ## Enviroment Variables
 
-DB_SECRET_ID - The ID of the AWS secret that contains the database connection information.
+`DB_SECRET_ID` - The ID of the AWS secret that contains the database connection information.
 
 It expects the following key/value pairs:
 
@@ -25,7 +25,8 @@ It expects the following key/value pairs:
 ## Usage
 
 ```
-import { getDbCredentials, connectDb } from 'database'
+import database from '/opt/nodejs/node_modules/database/index.js'
+const { getDbCredentials, connectDb } = database
 
 const credentials = await getDbCredentials()
 const client = await connectDb(credentials)

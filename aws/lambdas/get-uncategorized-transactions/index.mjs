@@ -6,11 +6,12 @@ const txLimit = 200
 
 console.log('Loading function')
 
-// console.log('NODE_PATH:', process.env.NODE_PATH)
-
 export const handler = async (event, context) => {
   try {
-    const data = await getTransactionsAndMeta()
+    // console.log('event:', event)
+    const { include } = event.queryStringParameters
+    const includeCategories = include === 'categories'
+    const data = await getTransactionsAndMeta(includeCategories)
     return {
       statusCode: 200,
       headers: {
@@ -24,6 +25,12 @@ export const handler = async (event, context) => {
       body: JSON.stringify({ error }),
     }
   }
+}
+
+const getCategories = async (client) => {
+  const text = 'SELECT id, label FROM category'
+  const res = await client.query(text)
+  return res.rows
 }
 
 const getMetaInfo = async (client) => {
@@ -66,20 +73,25 @@ export const getUncategorizedTransactions = async (client) => {
   return res.rows
 }
 
-export const getTransactionsAndMeta = async () => {
+export const getTransactionsAndMeta = async (includeCategories) => {
   let client
   try {
     const credentials = await getDbCredentials()
     client = await connectDb(credentials)
-    
-    // See if we have an existing bank account
+  
     const meta = await getMetaInfo(client)
     const transactions = await getUncategorizedTransactions(client)
     meta.isMore = meta.numberOfUncategorizedTransactions > txLimit
-    return {
+    const json = {
       meta,
       transactions,
     }
+    
+    if (includeCategories) {
+      json.categories = await getCategories(client)
+    }
+    
+    return json
   } catch (e) {
     console.error(e)
     throw e

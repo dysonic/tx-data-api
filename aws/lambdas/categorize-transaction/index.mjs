@@ -1,40 +1,8 @@
+import database from '/opt/nodejs/node_modules/database/index.js'
 import querystring from 'querystring'
-import pg from 'pg'
 import { nanoid } from 'nanoid'
-import axios from 'axios'
 
-const { Client } = pg
-
-
-// AWS Parameters and Secrets Lambda Extension
-const getDbCredentials = async () => {
-  const headers = { 'X-Aws-Parameters-Secrets-Token': process.env['AWS_SESSION_TOKEN'] }
-  const port = process.env['PARAMETERS_SECRETS_EXTENSION_HTTP_PORT'] || 2773
-  const secretId = querystring.escape('dev/txData/postgres')
-  try {
-    const url = 'http://localhost:' + port + '/secretsmanager/get?secretId=' + secretId
-    // console.log('url:', url)
-    const res = await axios.get(url, { headers })
-    // console.log('res.data:', res.data)    
-    return JSON.parse(res.data.SecretString)
-  } catch (e) {
-    console.error('ERROR: Could not get DB secret')
-    console.error(e)
-    throw e
-  }
-}
-
-const connectDb = async (credentials) => {
-  try {
-    const client = new Client(credentials)
-    await client.connect()
-    return client
-  } catch (e) {
-    console.error('ERROR: Could not connect to PostgreSQL instance')
-    console.error(e)
-    throw e
-  }
-}
+const { getDbCredentials, connectDb } = database
 
 console.log('Loading function')
 
@@ -43,15 +11,15 @@ export const handler = async (event, context) => {
     const data = JSON.parse(event.body)
     const { transactions, newCategory, categoryId = nanoid(7) } = data
     await categorizeTransactionsToDB(transactions, categoryId, newCategory)
-    const catgeory = { id: categoryId, label: newCategory }
+    const category = { id: categoryId, label: newCategory }
     if (newCategory) {
       return {
         statusCode: 200,
         headers: {
             "content-type" : "application/json; charset=utf-8",
         },
-        body: JSON.stringify({ catgeory }),
-      } 
+        body: JSON.stringify({ category }),
+      }
     }
     return {
       statusCode: 204,
@@ -77,9 +45,10 @@ export const categorizeTransaction = async (client, txId, categoryId) => {
 }
 
 export const categorizeTransactionsToDB = async (transactions, categoryId, newCategory) => {
-  const credentials = await getDbCredentials()
-  const client = await connectDb(credentials)
+  let client
   try {
+    const credentials = await getDbCredentials()
+    client = await connectDb(credentials)
     await client.query('BEGIN')
     if (newCategory) {
       await insertCategory(client, categoryId, newCategory)
@@ -98,6 +67,6 @@ export const categorizeTransactionsToDB = async (transactions, categoryId, newCa
     await client.query('ROLLBACK')
     throw e
   } finally {
-    client.end()
+    client && client.end()
   }
 }
