@@ -1,31 +1,12 @@
-import pg from 'pg'
+import database from '/opt/nodejs/node_modules/database/index.js'
+const { getDbCredentials, connectDb } = database
 
-const { Client } = pg
 
 const txLimit = 200
 
-// node-postgres uses the same environment variables as libpq and psql to connect to a PostgreSQL server.
-// @see https://node-postgres.com/features/connecting#environment-variables
-
-// PGUSER: PostgreSQL username to connect as
-// PGHOST: The name of the server host to connect to
-// PGPASSWORD: The password of the PostgreSQL server
-// PGDATABASE: The name of the database you are connecting to
-// PGPORT: The port number to connect to at the server host
-
-const connectDb = async () => {
-  try {
-    const client = new Client()
-    await client.connect()
-    return client
-  } catch (e) {
-    console.error('ERROR: Could not connect to PostgreSQL instance')
-    console.error(e)
-    throw e
-  }
-}
-
 console.log('Loading function')
+
+// console.log('NODE_PATH:', process.env.NODE_PATH)
 
 export const handler = async (event, context) => {
   try {
@@ -88,7 +69,8 @@ export const getUncategorizedTransactions = async (client) => {
 export const getTransactionsAndMeta = async () => {
   let client
   try {
-    client = await connectDb()
+    const credentials = await getDbCredentials()
+    client = await connectDb(credentials)
     
     // See if we have an existing bank account
     const meta = await getMetaInfo(client)

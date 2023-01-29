@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Database Layer
+
+Resources:
+  SDKlayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: databaseLayer
+      Description: Lambda layer for Postgres DB connection.
+      ContentUri: './layer'
+      CompatibleRuntimes:
+        - nodejs16.x
+      LicenseInfo: 'Available under the Apache-2.0 license.'
+      RetentionPolicy: Retain
