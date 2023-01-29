@@ -1,22 +1,32 @@
+import querystring from 'querystring'
 import pg from 'pg'
 import { nanoid } from 'nanoid'
+import axios from 'axios'
 
 const { Client } = pg
 
-const txLimit = 200
 
-// node-postgres uses the same environment variables as libpq and psql to connect to a PostgreSQL server.
-// @see https://node-postgres.com/features/connecting#environment-variables
-
-// PGUSER: PostgreSQL username to connect as
-// PGHOST: The name of the server host to connect to
-// PGPASSWORD: The password of the PostgreSQL server
-// PGDATABASE: The name of the database you are connecting to
-// PGPORT: The port number to connect to at the server host
-
-const connectDb = async () => {
+// AWS Parameters and Secrets Lambda Extension
+const getDbCredentials = async () => {
+  const headers = { 'X-Aws-Parameters-Secrets-Token': process.env['AWS_SESSION_TOKEN'] }
+  const port = process.env['PARAMETERS_SECRETS_EXTENSION_HTTP_PORT'] || 2773
+  const secretId = querystring.escape('dev/txData/postgres')
   try {
-    const client = new Client()
+    const url = 'http://localhost:' + port + '/secretsmanager/get?secretId=' + secretId
+    // console.log('url:', url)
+    const res = await axios.get(url, { headers })
+    // console.log('res.data:', res.data)    
+    return JSON.parse(res.data.SecretString)
+  } catch (e) {
+    console.error('ERROR: Could not get DB secret')
+    console.error(e)
+    throw e
+  }
+}
+
+const connectDb = async (credentials) => {
+  try {
+    const client = new Client(credentials)
     await client.connect()
     return client
   } catch (e) {
@@ -63,12 +73,12 @@ export const insertCategory = async (client, id, label) => {
 export const categorizeTransaction = async (client, txId, categoryId) => {
   const text = 'UPDATE transaction SET category_id = $1 WHERE id = $2'
   const values = [categoryId, txId]
-  await client.query(text)
+  await client.query(text, values)
 }
 
 export const categorizeTransactionsToDB = async (transactions, categoryId, newCategory) => {
-  const client = await connectDb()
-
+  const credentials = await getDbCredentials()
+  const client = await connectDb(credentials)
   try {
     await client.query('BEGIN')
     if (newCategory) {
