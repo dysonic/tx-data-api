@@ -9,7 +9,7 @@ console.log('Loading function')
 export const handler = async (event, context) => {
   try {
     // console.log('event:', event)
-    const { include } = event.queryStringParameters
+    const include = event.queryStringParameters?.include
     const includeCategories = include === 'categories'
     const data = await getTransactionsAndMeta(includeCategories)
     return {
@@ -20,6 +20,7 @@ export const handler = async (event, context) => {
       body: JSON.stringify(data),
     } 
   } catch (error) {
+    console.error(error)
     return {
       statusCode: 500,
       body: JSON.stringify({ error }),
@@ -34,20 +35,20 @@ const getCategories = async (client) => {
 }
 
 const getMetaInfo = async (client) => {
-  let numberOfTransactions = 0
-  let numberOfUncategorizedTransactions = 0
-  let totalSpending = 0.00
-  let uncategorizedSpending = 0.00
+  let txTotal = 0
+  let txUncategorized = 0
+  // let totalSpending = 0.00
+  // let uncategorizedSpending = 0.00
   
   let text = 'SELECT COUNT(*) FROM transaction'
   let res = await client.query(text)
   // console.log('res:', res)
-  numberOfTransactions = res.rows[0].count
+  txTotal = Number(res.rows[0].count)
   
   text = 'SELECT COUNT(*) FROM transaction WHERE category_id IS NULL'
   res = await client.query(text)
   // console.log('res:', res)
-  numberOfUncategorizedTransactions = res.rows[0].count
+  txUncategorized = Number(res.rows[0].count)
   
   // text = 'SELECT SUM(ABS(amount)) FROM transaction'
   // res = await client.query(text)
@@ -58,10 +59,35 @@ const getMetaInfo = async (client) => {
   // uncategorizedSpending = res.rows[0].id
   
   return {
-    numberOfTransactions,
-    numberOfUncategorizedTransactions,
-    totalSpending,
-    uncategorizedSpending,
+    txTotal,
+    txUncategorized,
+    // totalSpending,
+    // uncategorizedSpending,
+  }
+}
+
+export const mapDbTxToTransaction = (dbTx) => {
+  const {
+    id,
+    third_party_tx_id: thirdPartyTxId,
+    date_posted: dbDatePosted,
+    amount: dbAmount,
+    description,
+    notes,
+    type,
+    bank_account_id: bankAccountId,
+  } = dbTx
+  const datePosted = new Date(dbDatePosted)
+  const amount = Math.abs(Number(dbAmount.replace('$', '')))
+  return {
+    id,
+    thirdPartyTxId,
+    datePosted,
+    amount,
+    description,
+    notes,
+    type,
+    bankAccountId,
   }
 }
 
@@ -71,6 +97,7 @@ export const getUncategorizedTransactions = async (client) => {
   const res = await client.query(text)
   // console.log(res)
   return res.rows
+    .map(mapDbTxToTransaction)
 }
 
 export const getTransactionsAndMeta = async (includeCategories) => {
