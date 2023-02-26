@@ -78,7 +78,7 @@ export const mapDbTxToTransaction = (dbTx) => {
     bank_account_id: bankAccountId,
   } = dbTx
   const datePosted = new Date(dbDatePosted)
-  const amount = Math.abs(Number(dbAmount.replace('$', '')))
+  const amount = Math.abs(Number(dbAmount.replaceAll(/[\$,]/g, '')))
   return {
     id,
     thirdPartyTxId,
