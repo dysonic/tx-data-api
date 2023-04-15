@@ -45,7 +45,7 @@ const getMetaInfo = async (client) => {
   // console.log('res:', res)
   txTotal = Number(res.rows[0].count)
   
-  text = 'SELECT COUNT(*) FROM transaction WHERE category_id IS NULL AND is_excluded = FALSE'
+  text = 'SELECT COUNT(*) FROM transaction WHERE category_id IS NULL'
   res = await client.query(text)
   // console.log('res:', res)
   txUncategorized = Number(res.rows[0].count)
@@ -93,7 +93,7 @@ export const mapDbTxToTransaction = (dbTx) => {
 
 export const getUncategorizedTransactions = async (client) => {
   const text =
-    `SELECT id, third_party_tx_id, date_posted, amount, description, notes, type FROM transaction WHERE category_id IS NULL AND is_excluded = FALSE ORDER BY date_posted DESC LIMIT ${txLimit}`
+    `SELECT id, third_party_tx_id, date_posted, amount, description, notes, type FROM transaction WHERE category_id IS NULL ORDER BY date_posted DESC LIMIT ${txLimit}`
   const res = await client.query(text)
   // console.log(res)
   return res.rows

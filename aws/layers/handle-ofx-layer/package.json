@@ -4,6 +4,11 @@
   "description": "OFX NPM package",
   "main": "index.js",
   "scripts": {
+    "dev": "npm run zip && npm run s3 && npm run deploy",
+    "deploy": "aws lambda update-function-code --function-name categorizeTransaction --s3-bucket dysonic-dev-misc --s3-key categorize-transaction.zip --no-cli-pager",
+    "s3": "aws s3 cp ../handle-ofx-layer.zip s3://dysonic-dev-misc/handle-ofx-layer.zip",
+    "zip": "rm -f ../handle-ofx-layer.zip && cd layer && zip -r ../../handle-ofx-layer.zip -q .",
+    "zip:info": "zipinfo -h ../handle-ofx-layer.zip",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",

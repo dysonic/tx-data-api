@@ -5,6 +5,11 @@
   "main": "index.js",
   "scripts": {
     "postinstall": "cp -r ./node_modules ./layer/nodejs && chmod 755 ./create-package.sh && ./create-package.sh",
+    "dev": "npm run zip && npm run s3 && npm run deploy",
+    "deploy": "aws lambda update-function-code --function-name categorizeTransaction --s3-bucket dysonic-dev-misc --s3-key categorize-transaction.zip --no-cli-pager",
+    "s3": "aws s3 cp ../database-layer.zip s3://dysonic-dev-misc/database-layer.zip",
+    "zip": "rm -f ../database-layer.zip && cd layer && zip -r ../../database-layer.zip -q .",
+    "zip:info": "zipinfo -h ../database-layer.zip",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",

@@ -1,0 +1,19 @@
+{
+  "name": "toggle-transaction-exclusion",
+  "version": "1.0.0",
+  "description": "Toggle transaction exclusion from the DB",
+  "main": "index.js",
+  "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",
+  "license": "MIT",
+  "scripts": {
+    "create-service-role": "aws iam create-role help",
+    "dev": "npm run zip && npm run s3 && npm run deploy",
+    "deploy": "aws lambda update-function-code --function-name toggleTransactionExclusion --s3-bucket dysonic-dev-misc --s3-key toggle-transaction-exclusion.zip --no-cli-pager",
+    "s3": "aws s3 cp ../toggle-transaction-exclusion.zip s3://dysonic-dev-misc/toggle-transaction-exclusion.zip",
+    "zip": "rm -f ../toggle-transaction-exclusion.zip && zip -r ../toggle-transaction-exclusion.zip -q .",
+    "zip:info": "zipinfo -h ../toggle-transaction-exclusion.zip"
+  },
+  "dependencies": {
+    "pg": "^8.8.0"
+  }
+}

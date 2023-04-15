@@ -10,6 +10,6 @@ Resources:
       Description: Lambda layer for Postgres DB connection.
       ContentUri: './layer'
       CompatibleRuntimes:
-        - nodejs16.x
+        - nodejs18.x
       LicenseInfo: 'Available under the Apache-2.0 license.'
       RetentionPolicy: Retain

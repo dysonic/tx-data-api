@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Create resources for the tx-data-api application.
+
+Resources:
+# Details about the getUncategorizedTransactions Lambda function
+  getUncategorizedTransactionsLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: getUncategorizedTransactions
+      Description: Get uncategorized transactions from the DB.
+      Runtime: nodejs16.x
+      Handler: getUncategorizedTransactions.handler
+      PackageType: Zip
+      Code:
+        S3Bucket: dysonic-dev-misc
+        S3Key: get-uncategorized-transactions.zip
+      Role: arn:aws:iam::123456789012:role/lambda-vpc-role
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-0897d5f549934c2fb
+        SubnetIds:
+          - subnet-0532bb6758ce7c71f
+          - subnet-d6b7fda068036e11f
+      
