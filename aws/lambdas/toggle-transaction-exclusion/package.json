@@ -6,7 +6,8 @@
   "author": "Gareth Dyson <4315423+dysonic@users.noreply.github.com>",
   "license": "MIT",
   "scripts": {
-    "create-service-role": "aws iam create-role help",
+    "sam:package": "sam package --template-file template.yml --output-template-file package.yml --s3-bucket dysonic-dev-misc",
+    "sam:deploy": "sam deploy --template-file package.yml --stack-name tx-data-api-stack",
     "dev": "npm run zip && npm run s3 && npm run deploy",
     "deploy": "aws lambda update-function-code --function-name toggleTransactionExclusion --s3-bucket dysonic-dev-misc --s3-key toggle-transaction-exclusion.zip --no-cli-pager",
     "s3": "aws s3 cp ../toggle-transaction-exclusion.zip s3://dysonic-dev-misc/toggle-transaction-exclusion.zip",

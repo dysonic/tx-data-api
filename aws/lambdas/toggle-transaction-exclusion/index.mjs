@@ -1,26 +1,18 @@
 import database from '/opt/nodejs/node_modules/database/index.js'
+
 const { getDbCredentials, connectDb } = database
-
-
-const txLimit = 200
 
 console.log('Loading function')
 
 export const handler = async (event, context) => {
   try {
-    // console.log('event:', event)
-    const include = event.queryStringParameters?.include
-    const includeCategories = include === 'categories'
-    const data = await getTransactionsAndMeta(includeCategories)
+    const data = JSON.parse(event.body)
+    const { transactions, isExcluded } = data
+    await toggleTransactionExclusionToDB(transactions, isExcluded)
     return {
-      statusCode: 200,
-      headers: {
-          "content-type" : "application/json; charset=utf-8",
-      },
-      body: JSON.stringify(data),
+      statusCode: 204,
     } 
   } catch (error) {
-    console.error(error)
     return {
       statusCode: 500,
       body: JSON.stringify({ error }),
@@ -28,99 +20,36 @@ export const handler = async (event, context) => {
   }
 }
 
-const getCategories = async (client) => {
-  const text = 'SELECT id, label FROM category'
-  const res = await client.query(text)
-  return res.rows
+const getCategoryByLabel= async (client, label) => {
+  const text = 'SELECT id, label FROM category WHERE LOWER(label) = $1 LIMIT 1'
+  const values = [label.toLowerCase()]
+  const res = await client.query(text, values)
+  return res.rows[0]
 }
 
-const getMetaInfo = async (client) => {
-  let txTotal = 0
-  let txUncategorized = 0
-  // let totalSpending = 0.00
-  // let uncategorizedSpending = 0.00
-  
-  let text = 'SELECT COUNT(*) FROM transaction'
-  let res = await client.query(text)
-  // console.log('res:', res)
-  txTotal = Number(res.rows[0].count)
-  
-  text = 'SELECT COUNT(*) FROM transaction WHERE category_id IS NULL'
-  res = await client.query(text)
-  // console.log('res:', res)
-  txUncategorized = Number(res.rows[0].count)
-  
-  // text = 'SELECT SUM(ABS(amount)) FROM transaction'
-  // res = await client.query(text)
-  // totalSpending = res.rows[0].id
-  
-  // text = 'SELECT SUM(ABS(amount)) FROM transaction WHERE category_id IS NULL'
-  // res = await client.query(text)
-  // uncategorizedSpending = res.rows[0].id
-  
-  return {
-    txTotal,
-    txUncategorized,
-    // totalSpending,
-    // uncategorizedSpending,
-  }
+export const toggleTransactionExclusion = async (client, txId, isExcluded) => {
+  const text = 'UPDATE transaction SET is_excluded = $1 WHERE id = $2'
+  const values = [isExcluded, txId]
+  await client.query(text, values)
 }
 
-export const mapDbTxToTransaction = (dbTx) => {
-  const {
-    id,
-    third_party_tx_id: thirdPartyTxId,
-    date_posted: dbDatePosted,
-    amount: dbAmount,
-    description,
-    notes,
-    type,
-    bank_account_id: bankAccountId,
-  } = dbTx
-  const datePosted = new Date(dbDatePosted)
-  const amount = Math.abs(Number(dbAmount.replaceAll(/[\$,]/g, '')))
-  return {
-    id,
-    thirdPartyTxId,
-    datePosted,
-    amount,
-    description,
-    notes,
-    type,
-    bankAccountId,
-  }
-}
-
-export const getUncategorizedTransactions = async (client) => {
-  const text =
-    `SELECT id, third_party_tx_id, date_posted, amount, description, notes, type FROM transaction WHERE category_id IS NULL ORDER BY date_posted DESC LIMIT ${txLimit}`
-  const res = await client.query(text)
-  // console.log(res)
-  return res.rows
-    .map(mapDbTxToTransaction)
-}
-
-export const getTransactionsAndMeta = async (includeCategories) => {
+export const toggleTransactionExclusionToDB = async (transactions, isExcluded) => {
   let client
   try {
     const credentials = await getDbCredentials()
     client = await connectDb(credentials)
-  
-    const meta = await getMetaInfo(client)
-    const transactions = await getUncategorizedTransactions(client)
-    meta.isMore = meta.numberOfUncategorizedTransactions > txLimit
-    const json = {
-      meta,
-      transactions,
+    await client.query('BEGIN')
+
+    console.log('> toggle txs')
+    for (let i = 0; i < transactions.length; i++) {
+      const txId = transactions[i]
+      await toggleTransactionExclusion(client, txId, isExcluded)
     }
-    
-    if (includeCategories) {
-      json.categories = await getCategories(client)
-    }
-    
-    return json
+
+    await client.query('COMMIT')
   } catch (e) {
     console.error(e)
+    await client.query('ROLLBACK')
     throw e
   } finally {
     client && client.end()

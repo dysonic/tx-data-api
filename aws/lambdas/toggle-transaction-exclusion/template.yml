@@ -4,17 +4,17 @@ Description: Create resources for the tx-data-api application.
 
 Resources:
 # Details about the getUncategorizedTransactions Lambda function
-  getUncategorizedTransactionsLambda:
+  toggleTransactionExclusionLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: getUncategorizedTransactions
-      Description: Get uncategorized transactions from the DB.
-      Runtime: nodejs16.x
-      Handler: getUncategorizedTransactions.handler
+      FunctionName: toggleTransactionExclusion
+      Description: Update transaction exlusion in the DB.
+      Runtime: nodejs18.x
+      Handler: toggleTransactionExclusion.handler
       PackageType: Zip
       Code:
         S3Bucket: dysonic-dev-misc
-        S3Key: get-uncategorized-transactions.zip
+        S3Key: toggle-transaction-exclusion.zip
       Role: arn:aws:iam::123456789012:role/lambda-vpc-role
       VpcConfig:
         SecurityGroupIds:

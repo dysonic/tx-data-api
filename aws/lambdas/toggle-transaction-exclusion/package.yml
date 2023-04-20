@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Create resources for the tx-data-api application.
+Resources:
+  toggleTransactionExclusionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: toggleTransactionExclusion
+      Description: Update transaction exlusion in the DB.
+      Runtime: nodejs18.x
+      Handler: toggleTransactionExclusion.handler
+      PackageType: Zip
+      Code:
+        S3Bucket: dysonic-dev-misc
+        S3Key: toggle-transaction-exclusion.zip
+      Role: arn:aws:iam::123456789012:role/lambda-vpc-role
+      VpcConfig:
+        SecurityGroupIds:
+        - sg-0897d5f549934c2fb
+        SubnetIds:
+        - subnet-0532bb6758ce7c71f
+        - subnet-d6b7fda068036e11f
+    Metadata:
+      SamResourceId: toggleTransactionExclusionLambda
