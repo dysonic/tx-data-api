@@ -20,13 +20,6 @@ export const handler = async (event, context) => {
   }
 }
 
-const getCategoryByLabel= async (client, label) => {
-  const text = 'SELECT id, label FROM category WHERE LOWER(label) = $1 LIMIT 1'
-  const values = [label.toLowerCase()]
-  const res = await client.query(text, values)
-  return res.rows[0]
-}
-
 export const toggleTransactionExclusion = async (client, txId, isExcluded) => {
   const text = 'UPDATE transaction SET is_excluded = $1 WHERE id = $2'
   const values = [isExcluded, txId]
@@ -34,10 +27,13 @@ export const toggleTransactionExclusion = async (client, txId, isExcluded) => {
 }
 
 export const toggleTransactionExclusionToDB = async (transactions, isExcluded) => {
+  console.log('transactions:', transactions, 'isExcluded:', isExcluded)
   let client
   try {
     const credentials = await getDbCredentials()
+    console.log('credentials')
     client = await connectDb(credentials)
+    console.log('connection ok')
     await client.query('BEGIN')
 
     console.log('> toggle txs')
