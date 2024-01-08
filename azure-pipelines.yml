@@ -30,3 +30,5 @@ steps:
     command: 'init'
     # service connection name, required if backendType = aws
     backendServiceAWS: 'dysonic-terraform-aws'
+     # s3 bucket name, optional if provided elsewhere (i.e. inside terraform template or command options)
+    backendAWSBucketName: 'dysonic-terraform-dev'
