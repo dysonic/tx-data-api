@@ -32,3 +32,5 @@ steps:
     backendServiceAWS: 'dysonic-terraform-aws'
      # s3 bucket name, optional if provided elsewhere (i.e. inside terraform template or command options)
     backendAWSBucketName: 'dysonic-terraform-dev'
+    # s3 path to state file, optional if provided elsewhere (i.e. inside terraform template or command options)
+    backendAWSKey: 'tx-data-api/terraform-state'
