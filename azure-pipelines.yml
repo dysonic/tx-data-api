@@ -24,7 +24,9 @@ steps:
     terraformVersion: 'latest'
 
 - task: TerraformTaskV4@4
-  displayName: 'Terraform Init'
+  displayName: 'terraform init'
   inputs:
     provider: 'aws'
     command: 'init'
+    # service connection name, required if backendType = aws
+    backendServiceAWS: 'env_test_aws'
