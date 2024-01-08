@@ -9,31 +9,31 @@
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  # default     = "us-west-2" # Oregon
-  default  = "ap-southeast-2" # Sydney
+  default     = "us-west-2" # Oregon
 }
 
-variable "postgres_identifier" {
+variable "db_identifier" {
   description = "Set identifier - can be the same as database name"
   type = string
   default = "tx-data-dev"
 }
 
-variable "postgres_database_name" {
+variable "db_name" {
   description = "Database to connect to (optional)"
   type = string
   default = "tx-data-dev"
 }
 
-variable "postgres_username" {
+variable "db_username" {
   description = "Username for the server connection"
   type = string
   default = "admin"
 }
 
-variable "postgres_password" {
+variable "db_password" {
   description = "Password for the server connection"
   type = string
+  sensitive = true
 }
 
 variable "postgres_instance_name" {
