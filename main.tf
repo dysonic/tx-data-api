@@ -1,4 +1,12 @@
 terraform {
+
+  backend "azurerm" {
+    storage_account_name = "dysonic"
+    container_name       = "tfstate"
+    key                  = "tx-data-api.terraform.tfstate"
+    resource_group_name  = "dysonic-devops"
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
