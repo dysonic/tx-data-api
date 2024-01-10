@@ -1,21 +1,24 @@
 terraform {
-
-  backend "azurerm" {
-    storage_account_name = "dysonic"
-    container_name       = "tfstate"
-    key                  = "tx-data-api.terraform.tfstate"
-    resource_group_name  = "dysonic-devops"
-  }
-
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 4.16"
     }
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~>3.0"
+    }
     # postgresql = {
     #   source  = "cyrilgdn/postgresql"
     #   version = "~> 1.21.0"
     # }
+  }
+
+  backend "azurerm" {
+    resource_group_name  = "dysonic-devops"
+    storage_account_name = "dysonic"
+    container_name       = "tfstate"
+    key                  = "tx-data-api.terraform.tfstate"
   }
 
   required_version = ">= 1.2.0"
