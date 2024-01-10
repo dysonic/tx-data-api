@@ -4,33 +4,43 @@
 # https://aka.ms/yaml
 
 trigger:
-- main
+  - main
 
 pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+  - script: echo Hello, world!
+    displayName: 'Run a one-line script'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+  - script: |
+      echo Add other tasks to build, test, and deploy your project.
+      echo See https://aka.ms/yaml
+    displayName: 'Run a multi-line script'
 
-- task: TerraformInstaller@1
-  displayName: 'Install Terraform'
-  inputs:
-    terraformVersion: 'latest'
+  - task: TerraformInstaller@1
+    displayName: 'Install Terraform'
+    inputs:
+      terraformVersion: 'latest'
 
-- task: TerraformTaskV4@4
-  displayName: 'terraform init'
-  inputs:
-    provider: 'aws'
-    command: 'init'
-    # service connection name, required if backendType = aws
-    backendServiceAWS: 'dysonic-terraform-aws'
-     # s3 bucket name, optional if provided elsewhere (i.e. inside terraform template or command options)
-    backendAWSBucketName: 'dysonic-terraform-dev'
-    # s3 path to state file, optional if provided elsewhere (i.e. inside terraform template or command options)
-    backendAWSKey: 'tx-data-api/terraform-state'
+  - task: TerraformTaskV4@4
+    displayName: 'terraform init'
+    inputs:
+      provider: 'azurerm'
+      command: 'init'
+
+      # aws
+      # service connection name, required if backendType = aws
+      # backendServiceAWS:
+      #   'dysonic-terraform-aws'
+      # s3 bucket name, optional if provided elsewhere (i.e. inside terraform template or command options)
+      # backendAWSBucketName: 'dysonic-terraform-dev'
+      # s3 path to state file, optional if provided elsewhere (i.e. inside terraform template or command options)
+      # backendAWSKey: 'tx-data-api/terraform-state'
+
+      # azurerm
+      backendServiceArm: 'dysonic-azurerm'
+      resourceGroupName: 'dysonic-devops'
+      storageAccountName: 'dysonic'
+      containerName: 'tfstate'
+      key: 'tx-data-api.terraform.tfstate'
