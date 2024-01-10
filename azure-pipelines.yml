@@ -43,4 +43,4 @@ steps:
       resourceGroupName: 'dysonic-devops'
       backendAzureRmStorageAccountName: 'dysonic'
       backendAzureRmContainerName: 'tfstate'
-      key: 'tx-data-api.terraform.tfstate'
+      backendAzureRmKey: 'tx-data-api.terraform.tfstate'
