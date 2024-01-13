@@ -41,3 +41,4 @@ steps:
       provider: 'aws'
       command: 'plan'
       # environmentServiceNameAzureRM: 'dysonic-azurerm'
+      environmentServiceNameAWS: 'dysonic-terraform-aws'
