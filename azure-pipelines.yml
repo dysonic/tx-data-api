@@ -18,28 +18,26 @@ steps:
   - task: TerraformTaskV4@4
     displayName: 'terraform init'
     inputs:
-      provider: 'azurerm'
+      provider: 'aws'
       command: 'init'
 
       # aws
-      # service connection name, required if backendType = aws
-      # backendServiceAWS:
-      #   'dysonic-terraform-aws'
-      # s3 bucket name, optional if provided elsewhere (i.e. inside terraform template or command options)
-      # backendAWSBucketName: 'dysonic-terraform-dev'
-      # s3 path to state file, optional if provided elsewhere (i.e. inside terraform template or command options)
-      # backendAWSKey: 'tx-data-api/terraform-state'
+      backendServiceAWS: 'dysonic-terraform-aws'
+      # # s3 bucket name, optional if provided elsewhere (i.e. inside terraform template or command options)
+      # backendAWSBucketName: 'dysonic-devops'
+      # # s3 path to state file, optional if provided elsewhere (i.e. inside terraform template or command options)
+      # backendAWSKey: 'tx-data-api.tfstate'
 
       # azurerm
-      backendServiceArm: 'dysonic-azurerm'
-      backendAzureRmResourceGroupName: 'dysonic-devops'
-      backendAzureRmStorageAccountName: 'dysonic'
-      backendAzureRmContainerName: 'tfstate'
-      backendAzureRmKey: 'tx-data-api.terraform.tfstate'
+      # backendServiceArm: 'dysonic-azurerm'
+      # backendAzureRmResourceGroupName: 'dysonic-devops'
+      # backendAzureRmStorageAccountName: 'dysonic'
+      # backendAzureRmContainerName: 'tfstate'
+      # backendAzureRmKey: 'tx-data-api.terraform.tfstate'
 
   - task: TerraformTaskV4@4
     displayName: 'terraform plan'
     inputs:
-      provider: 'azurerm'
+      provider: 'aws'
       command: 'plan'
       environmentServiceNameAzureRM: 'dysonic-azurerm'

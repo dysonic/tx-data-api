@@ -14,11 +14,16 @@ terraform {
     # }
   }
 
-  backend "azurerm" {
-    resource_group_name  = "dysonic-devops"
-    storage_account_name = "dysonic"
-    container_name       = "tfstate"
-    key                  = "tx-data-api.terraform.tfstate"
+  # backend "azurerm" {
+  #   resource_group_name  = "dysonic-devops"
+  #   storage_account_name = "dysonic"
+  #   container_name       = "tfstate"
+  #   key                  = "tx-data-api.tfstate"
+  # }
+  backend "s3" {
+    bucket = "dysonic-devops"
+    key    = "tx-data-api.tfstate"
+    region = var.aws_region
   }
 
   required_version = ">= 1.2.0"
