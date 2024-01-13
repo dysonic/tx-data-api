@@ -42,8 +42,4 @@ steps:
     inputs:
       provider: 'azurerm'
       command: 'plan'
-      backendServiceArm: 'dysonic-azurerm'
-      backendAzureRmResourceGroupName: 'dysonic-devops'
-      backendAzureRmStorageAccountName: 'dysonic'
-      backendAzureRmContainerName: 'tfstate'
-      backendAzureRmKey: 'tx-data-api.terraform.tfstate'
+      environmentServiceNameAzureRM: 'dysonic-azurerm'
