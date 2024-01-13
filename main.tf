@@ -4,10 +4,11 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 4.16"
     }
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~>3.0"
-    }
+    # azurerm = {
+    #   source  = "hashicorp/azurerm"
+    #   version = "~>3.0"
+    # }
+
     # postgresql = {
     #   source  = "cyrilgdn/postgresql"
     #   version = "~> 1.21.0"
