@@ -10,14 +10,6 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-  - script: echo Hello, world!
-    displayName: 'Run a one-line script'
-
-  - script: |
-      echo Add other tasks to build, test, and deploy your project.
-      echo See https://aka.ms/yaml
-    displayName: 'Run a multi-line script'
-
   - task: TerraformInstaller@1
     displayName: 'Install Terraform'
     inputs:
@@ -39,6 +31,17 @@ steps:
       # backendAWSKey: 'tx-data-api/terraform-state'
 
       # azurerm
+      backendServiceArm: 'dysonic-azurerm'
+      backendAzureRmResourceGroupName: 'dysonic-devops'
+      backendAzureRmStorageAccountName: 'dysonic'
+      backendAzureRmContainerName: 'tfstate'
+      backendAzureRmKey: 'tx-data-api.terraform.tfstate'
+
+  - task: TerraformTaskV4@4
+    displayName: 'terraform plan'
+    inputs:
+      provider: 'azurerm'
+      command: 'plan'
       backendServiceArm: 'dysonic-azurerm'
       backendAzureRmResourceGroupName: 'dysonic-devops'
       backendAzureRmStorageAccountName: 'dysonic'
