@@ -23,10 +23,10 @@ steps:
 
       # aws
       backendServiceAWS: 'dysonic-terraform-aws'
-      # # s3 bucket name, optional if provided elsewhere (i.e. inside terraform template or command options)
-      # backendAWSBucketName: 'dysonic-devops'
-      # # s3 path to state file, optional if provided elsewhere (i.e. inside terraform template or command options)
-      # backendAWSKey: 'tx-data-api.tfstate'
+      # s3 bucket name, optional if provided elsewhere (i.e. inside terraform template or command options)
+      backendAWSBucketName: 'dysonic-devops'
+      # s3 path to state file, optional if provided elsewhere (i.e. inside terraform template or command options)
+      backendAWSKey: 'tx-data-api.tfstate'
 
       # azurerm
       # backendServiceArm: 'dysonic-azurerm'
@@ -40,4 +40,4 @@ steps:
     inputs:
       provider: 'aws'
       command: 'plan'
-      environmentServiceNameAzureRM: 'dysonic-azurerm'
+      # environmentServiceNameAzureRM: 'dysonic-azurerm'
