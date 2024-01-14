@@ -9,7 +9,8 @@
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  default     = "us-west-2" # Oregon
+  # default     = "us-west-2" # Oregon
+  default = "ap-southeast-2" # Sydney
 }
 
 variable "db_identifier" {
