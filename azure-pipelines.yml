@@ -51,6 +51,7 @@ steps:
     inputs:
       provider: 'aws'
       command: 'show'
+      environmentServiceNameAWS: 'dysonic-terraform-aws'
       inputTargetPlanOrStateFilePath: '$(System.DefaultWorkingDirectory)/terraform.tfplan'
 
   - task: TerraformTaskV4@4
