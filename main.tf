@@ -120,6 +120,7 @@ provider "aws" {
 
 resource "aws_s3_bucket" "example" {
   bucket = "dysonic-tx-data"
+  region  = var.aws_region
 
   tags = {
     Name        = "My bucket"
