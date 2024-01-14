@@ -43,6 +43,16 @@ steps:
     inputs:
       provider: 'aws'
       command: 'plan'
-      commandOptions: '-input=false'
+      commandOptions: '-input=false -out=$(System.DefaultWorkingDirectory)/terraform.tfplan -detailed-exitcode'
+      # environmentServiceNameAzureRM: 'dysonic-azurerm'
+      environmentServiceNameAWS: 'dysonic-terraform-aws'
+
+  - task: TerraformTaskV4@4
+    displayName: 'terraform apply'
+    condition: and(succeeded(), eq(variables['TERRAFORM_PLAN_HAS_CHANGES'], 'true')
+    inputs:
+      provider: 'aws'
+      command: 'apply'
+      commandOptions: '-input=false $(System.DefaultWorkingDirectory)/terraform.tfplan'
       # environmentServiceNameAzureRM: 'dysonic-azurerm'
       environmentServiceNameAWS: 'dysonic-terraform-aws'
