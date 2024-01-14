@@ -24,7 +24,7 @@ terraform {
   backend "s3" {
     bucket = "dysonic-devops"
     key    = "tx-data-api.tfstate"
-    region = var.aws_region
+    region = "ap-southeast-2"
   }
 
   required_version = ">= 1.2.0"

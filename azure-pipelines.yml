@@ -20,6 +20,7 @@ steps:
     inputs:
       provider: 'aws'
       command: 'init'
+      commandOptions: '-input=false'
 
       # aws
       backendServiceAWS: 'dysonic-terraform-aws'
@@ -40,5 +41,6 @@ steps:
     inputs:
       provider: 'aws'
       command: 'plan'
+      commandOptions: '-input=false'
       # environmentServiceNameAzureRM: 'dysonic-azurerm'
       environmentServiceNameAWS: 'dysonic-terraform-aws'
